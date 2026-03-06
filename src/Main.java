@@ -6,7 +6,7 @@ public class Main {
     static HashMap<String, HashSet<String>> completedMap = new HashMap<>();
 
     public static void toPrint() {
-        System.out.println("> ADD_COURSE (enter only course(s))");
+        System.out.println("> ADD_COURSE (enter course(s))");
         System.out.println("> ADD_PREREQ (enter course and prereq(s))");
         System.out.println("> PREREQS (enter course)");
         System.out.println("> COMPLETE (enter student and course(s))");
@@ -15,33 +15,92 @@ public class Main {
         System.out.println("> EXIT");
     }
 
-    public static String ADD_COURSE(ArrayList<String> courseName) {
-        for (String n : courseName) {
-            prereqsMap.putIfAbsent(n, new HashSet<>());
-        }
-        return  "* Course(s) added: " + String.join(", ", courseName) + " *" + "\n";
+
+    public static boolean isValid(String name) {
+        return name.matches("[a-zA-Z0-9_]+");
     }
 
-    public static String ADD_PREREQ(String course, ArrayList<String> prereq) {
-        prereqsMap.putIfAbsent(course, new HashSet<>());
-        String str = "";
-        for (String p : prereq) {
-            if (course.equals(p)) {
-                str = "* A course (" + course + ") can't be it's own prerequisite (" + p + "), action rejected, try again";
-            } else {
-                prereqsMap.get(course).add(p);
-                str = "* Course and prereq for course added: " + course + "-> " + String.join(", ", prereq) + " *";
+    public static boolean validateArray(ArrayList<String> input) {
+        for (String s : input) {
+            if (!isValid(s)) {
+                System.out.println("* Invalid name: " + s + ", use only letters/digits/underscore *");
+                return false;
             }
+        }
+        return true;
+    }
 
+    public static ArrayList<String> getInput(Scanner scanner) {
+        String input = scanner.nextLine();
+        return new ArrayList<>(Arrays.asList(input.trim().split("\\s+")));
+    }
+
+    public static String promptOne(Scanner scanner, String message) {
+        while (true) {
+            System.out.println(message);
+            String input = getInput(scanner).get(0);
+            if (isValid(input)) {
+                return input;
+            }
+            System.out.println("* Invalid name: " + input + ", use only letters/digits/underscore *");
+        }
+    }
+
+    public static HashSet<String> promptSet(Scanner scanner, String message) {
+        while (true) {
+            System.out.println(message);
+            ArrayList<String> input = getInput(scanner);
+            boolean valid = true;
+            for (String s : input) {
+                if (!isValid(s)) {
+                    System.out.println("* Invalid name: " + s + ", use only letters/digits/underscore *");
+                    valid = false;
+                    break;
+                }
+            }
+            if (valid) {
+                return new HashSet<>(input);
+            }
+        }
+    }
+
+
+    public static String ADD_COURSE(HashSet<String> course) {
+        for (String c : course) {
+            prereqsMap.putIfAbsent(c, new HashSet<>());
+        }
+        String str = "";
+        if (course.size() == 1) {
+            str =  "* Course added: " + String.join(", ", course) + " *";
+        } else {
+            str =  "* Courses added: " + String.join(", ", course) + " *";
         }
         return str;
     }
 
-    public static String PREREQS(ArrayList<String> courseName) {
+    public static String ADD_PREREQ(String course, HashSet<String> prereq) {
+        prereqsMap.putIfAbsent(course, new HashSet<>());
+        if (prereq.contains(course)) {
+            return "* A course: " + course + " can't be its own prerequisite, action rejected, try again with no duplicate *";
+        }
+        for (String p : prereq) {
+            prereqsMap.putIfAbsent(p, new HashSet<>());
+            prereqsMap.get(course).add(p);
+        }
         String str = "";
-        for (String c : courseName) {
+        if (prereq.size() == 1) {
+            str = "* Course and prereq added: " + course + " -> " + String.join(", ", prereq) + " *";
+        } else {
+            str = "* Course and prereqs added: " + course + " -> " + String.join(", ", prereq) + " *";
+        }
+        return str;
+    }
+
+    public static String PREREQS(HashSet<String> course) {
+        String str = "";
+        for (String c : course) {
             if (!prereqsMap.containsKey(c)) {
-                str += "* There is no such that course *" + "\n";
+                str += "* There is no such that course as: " + c + " *" + "\n";
             } else if (prereqsMap.get(c).isEmpty()) {
                 str += "* Course: " + c + ", has no any prereqs *" + "\n";
             } else {
@@ -51,7 +110,7 @@ public class Main {
         return str;
     }
 
-    public static String COMPLETE(String student, ArrayList<String> courses) {
+    public static String COMPLETE(String student, HashSet<String> courses) {
         String str = "";
         completedMap.putIfAbsent(student, new HashSet<>());
         for (String c : courses) {
@@ -66,7 +125,7 @@ public class Main {
         return str;
     }
 
-    public static String DONE(ArrayList<String> students) {
+    public static String DONE(HashSet<String> students) {
         String str = "";
         for (String s : students) {
             if (!completedMap.containsKey(s)) {
@@ -84,7 +143,7 @@ public class Main {
         return str;
     }
 
-    public static String CAN_TAKE(String student, ArrayList<String> courses) {
+    public static String CAN_TAKE(String student, HashSet<String> courses) {
         String str = "";
         for (String c : courses) {
             if (!prereqsMap.containsKey(c) || prereqsMap.get(c).isEmpty()) {
@@ -116,98 +175,88 @@ public class Main {
                     System.out.println("Enter an option: ");
                     String option = scanner.nextLine();
                     ArrayList<String> optionArray = new ArrayList<>(Arrays.asList(option.trim().split("\\s+")));
-                    switch (optionArray.get(0)) {
+                    switch (optionArray.get(0).toUpperCase()) {
                         case "ADD_COURSE":
                             if (optionArray.size() > 1) {
-                                ArrayList<String> courseNames = new ArrayList<>(optionArray.subList(1, optionArray.size()));
-                                System.out.println(ADD_COURSE(courseNames));
+                                if (validateArray(new ArrayList<>(optionArray.subList(1, optionArray.size())))) {
+                                    System.out.println(ADD_COURSE(new HashSet<>(optionArray.subList(1, optionArray.size()))));
+                                }
                             } else {
-                                System.out.println("Please enter a course name(s): ");
-                                String courseName = scanner.nextLine();
-                                ArrayList<String> courseNameArray = new ArrayList<>(Arrays.asList(courseName.trim().split("\\s+")));
-                                System.out.println(ADD_COURSE(courseNameArray));
+                                System.out.println(ADD_COURSE(promptSet(scanner, "Please enter a course name(s): ")));
                             }
                             break;
                         case "ADD_PREREQ":
                             if (optionArray.size() > 2) {
-                                ArrayList<String> prereqNames = new ArrayList<>(optionArray.subList(2, optionArray.size()));
-                                System.out.println(ADD_PREREQ(optionArray.get(1), prereqNames));
+                                if (validateArray(new ArrayList<>(optionArray.subList(1, optionArray.size())))) {
+                                    System.out.println(ADD_PREREQ(optionArray.get(1), new HashSet<>(optionArray.subList(2, optionArray.size()))));
+                                }
                             } else if (optionArray.size() == 2) {
-                                scanner.nextLine();
-                                String prereqName = scanner.nextLine();
-                                ArrayList<String> prereqNameArray = new ArrayList<>(Arrays.asList(prereqName.trim().split("\\s+")));
-                                System.out.println(ADD_PREREQ(optionArray.get(1), prereqNameArray));
+                                if (isValid(optionArray.get(1))) {
+                                    System.out.println(ADD_PREREQ(optionArray.get(1), promptSet(scanner, "Please enter a prereq name(s): ")));
+                                } else {
+                                    System.out.println("* Invalid name: " + optionArray.get(1) + ", use only letters/digits/underscore *");
+                                }
                             } else {
-                                System.out.println("Please enter a course name: ");
-                                String courseName = scanner.nextLine();
-                                System.out.println("Please enter a prereq name(s): ");
-                                String prereqName = scanner.nextLine();
-                                ArrayList<String> prereqNameArray = new ArrayList<>(Arrays.asList(prereqName.trim().split("\\s+")));
-                                System.out.println(ADD_PREREQ(courseName, prereqNameArray));
+                                String courseName = promptOne(scanner, "Please enter a course name: ");
+                                System.out.println(ADD_PREREQ(courseName, promptSet(scanner, "Please enter a prereq name(s): ")));
                             }
                             break;
                         case "PREREQS":
                             if (optionArray.size() > 1) {
-                                ArrayList<String> coursesNames = new ArrayList<>(optionArray.subList(1, optionArray.size()));
-                                System.out.println(PREREQS(coursesNames));
+                                if (validateArray(new ArrayList<>(optionArray.subList(1, optionArray.size())))) {
+                                    System.out.println(PREREQS(new HashSet<>(optionArray.subList(1, optionArray.size()))));
+                                }
                             } else {
-                                System.out.println("Please enter a course name: ");
-                                String coursesName = scanner.nextLine();
-                                ArrayList<String> coursesNamesArray = new ArrayList<>(Arrays.asList(coursesName.trim().split("\\s+")));
-                                System.out.println(PREREQS(coursesNamesArray));
+                                System.out.println(PREREQS(promptSet(scanner, "Please enter a course name: ")));
                             }
                             break;
                         case "COMPLETE":
                             if (optionArray.size() > 2) {
-                                ArrayList<String> courses = new ArrayList<>(optionArray.subList(2, optionArray.size()));
-                                System.out.println(COMPLETE(optionArray.get(1), courses));
+                                if (validateArray(new ArrayList<>(optionArray.subList(1, optionArray.size())))) {
+                                    System.out.println(COMPLETE(optionArray.get(1), new HashSet<>(optionArray.subList(2, optionArray.size()))));
+                                }
                             } else if (optionArray.size() == 2) {
-                                System.out.println("Please enter a course name(s): ");
-                                scanner.nextLine();
-                                String courseName = scanner.nextLine();
-                                ArrayList<String> courseNameArray = new ArrayList<>(Arrays.asList(courseName.trim().split("\\s+")));
-                                System.out.println(COMPLETE(optionArray.get(1), courseNameArray));
+                                if (isValid(optionArray.get(1))) {
+                                    System.out.println(COMPLETE(optionArray.get(1), promptSet(scanner, "Please enter a course name(s): ")));
+                                } else {
+                                    System.out.println("* Invalid name: " + optionArray.get(1) + ", use only letters/digits/underscore *");
+                                }
                             } else {
-                                System.out.println("Please enter a student's name: ");
-                                String student = scanner.nextLine();
-                                System.out.println("Please enter a course name(s): ");
-                                String course = scanner.nextLine();
-                                ArrayList<String> courseArray = new ArrayList<>(Arrays.asList(course.trim().split("\\s+")));
-                                System.out.println(COMPLETE(student, courseArray));
+                                String student = promptOne(scanner, "Please enter a student's name: ");
+                                System.out.println(COMPLETE(student, promptSet(scanner, "Please enter a course name(s): ")));
                             }
                             break;
                         case "DONE":
                             if (optionArray.size() > 1) {
-                                ArrayList<String> course = new ArrayList<>(optionArray.subList(1, optionArray.size()));
-                                System.out.println(DONE(course));
+                                if (validateArray(new ArrayList<>(optionArray.subList(1, optionArray.size())))) {
+                                    System.out.println(DONE(new HashSet<>(optionArray.subList(1, optionArray.size()))));
+                                }
                             } else {
-                                System.out.println("Please enter student's name(s): ");
-                                String studentName = scanner.nextLine();
-                                ArrayList<String> studentNameArray = new ArrayList<>(Arrays.asList(studentName.trim().split("\\s+")));
-                                System.out.println(DONE(studentNameArray));
+                                System.out.println(DONE(promptSet(scanner, "Please enter student's name(s): ")));
                             }
                             break;
                         case "CAN_TAKE":
                             if (optionArray.size() > 2) {
-                                ArrayList<String> courses = new ArrayList<>(optionArray.subList(2, optionArray.size()));
-                                System.out.println(CAN_TAKE(optionArray.get(1), courses));
+                                if (validateArray(new ArrayList<>(optionArray.subList(1, optionArray.size())))) {
+                                    System.out.println(CAN_TAKE(optionArray.get(1), new HashSet<>(optionArray.subList(2, optionArray.size()))));
+                                }
                             } else if (optionArray.size() == 2) {
-                                System.out.println("Please enter course name(s): ");
-                                String course = scanner.nextLine();
-                                ArrayList<String> courseArray = new ArrayList<>(Arrays.asList(course.trim().split("\\s+")));
-                                System.out.println(CAN_TAKE(optionArray.get(1), courseArray));
+                                if (isValid(optionArray.get(1))) {
+                                    System.out.println(CAN_TAKE(optionArray.get(1), promptSet(scanner, "Please enter a course name(s): ")));
+                                } else {
+                                    System.out.println("* Invalid name: " + optionArray.get(1) + ", use only letters/digits/underscore *");
+                                }
                             } else {
-                                System.out.println("Please enter student's name: ");
-                                String student = scanner.nextLine();
-                                System.out.println("Please enter course name(s): ");
-                                String course = scanner.nextLine();
-                                ArrayList<String> courseArray = new ArrayList<>(Arrays.asList(course.trim().split("\\s+")));
-                                System.out.println(CAN_TAKE(student, courseArray));
+                                String student = promptOne(scanner, "Please enter student's name: ");
+                                System.out.println(CAN_TAKE(student, promptSet(scanner, "Please enter course name(s): ")));
                             }
                             break;
                         case "EXIT":
-                            System.out.println("You exited from menu");
+                            System.out.println("You exited from option-menu");
                             break inner;
+                        default:
+                            System.out.println("* Unknown command, try again *");
+                            break;
                     }
                 }
             } else if (choice.equals("exit")) {
