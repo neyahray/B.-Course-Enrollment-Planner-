@@ -1,4 +1,3 @@
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class Main {
@@ -15,7 +14,6 @@ public class Main {
         System.out.println("> CAN_TAKE (enter student and course(s))");
         System.out.println("> EXIT");
     }
-
 
     public static boolean isValid(String name) {
         return name.matches("[a-zA-Z0-9_]+");
@@ -76,7 +74,6 @@ public class Main {
             }
         }
     }
-
 
     public static String ADD_COURSE(HashSet<String> course) {
         for (String c : course) {
@@ -193,7 +190,6 @@ public class Main {
 //        return str;
 //    }
 //
-//
 //    public static void timingExperiment() {
 //        System.out.println("=== Timing Experiment ===");
 //        int[] sizes = {1, 5, 10, 50, 100};
@@ -228,8 +224,8 @@ public class Main {
 //                totalArrayList += (end - start);
 //            }
 //            System.out.println("Prereqs: " + size
-//                    + " | HashSet avg: " + (totalHashSet / 10) + " ns"
-//                    + " | ArrayList avg: " + (totalArrayList / 10) + " ns");
+//                    + " | HashSet avg: " + (totalHashSet / 10) + "\n"
+//                    + " | ArrayList avg: " + (totalArrayList / 10) + "\n");
 //        }
 //    }
 
@@ -341,8 +337,6 @@ public class Main {
                 break;
             }
         }
-        //
-
         //timingExperiment();
     }
 }
